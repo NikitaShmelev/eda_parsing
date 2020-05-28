@@ -53,11 +53,27 @@ links.each_with_index do |link, index|
     # puts links
     
     puts links_on_page.length
-    
-    # break
 
 
-
+    links_on_page.each do |recipe_url|
+        doc = Nokogiri::HTML(Curl.get('https://eda.ru'+recipe_url).body_str)
+        recipe_name = doc.search("h1[@class='recipe__name g-h1']").xpath('text()')
+        CSV.open("#{category_name}.csv", 'wb') do |csv|
+            csv << %w[recipe_name kitchen portions portions food_parts]
+            kitchen = doc.search("div.recipe__title ul[@class='breadcrumbs'] li a").map { |item| item.xpath('text()') }.last.to_s
+            portions = doc.search("input[@class='portions-control__count g-h6 js-portions-count js-tooltip']").map { |item| item['value'] }.first.to_s
+            food_part = doc.search("div.ingredients-list__content p[@class='ingredients-list__content-item content-item js-cart-ingredients']")#.map { |item| item['value'] }
+            food_parts = ''
+            food_part.each do |item|
+                name =  item.search("span[@class='js-tooltip js-tooltip-ingredient']").map { |item| item.xpath('text()') }
+                amount = item.search("span[@class='content-item__measure js-ingredient-measure-amount']").map { |item| item.xpath('text()') }.to_s
+                food_parts += "#{name} #{amount}\n"    
+            end
+            puts "#{recipe_name}, #{kitchen}, #{portions}, #{food_parts}"
+            csv << ["#{recipe_name}, #{kitchen}, #{portions}, #{food_parts}"]
+        end
+    end
+    break
 end
 
 
